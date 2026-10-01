@@ -183,3 +183,32 @@ The timeout defaults can be overridden for a controlled canary with `SITES_INSTA
 
 - [vinext Documentation](https://github.com/cloudflare/vinext)
 - [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+
+## CSV preflight (CLI preview)
+
+Before reviewing/exporting a user-creation script, run:
+
+```bash
+node scripts/csv-preflight.mjs users.csv
+node --test tests/csv-preflight.test.mjs
+```
+
+This dependency-free local tool checks the existing CSV contract:
+`DisplayName,UserPrincipalName,MailNickname,TemporaryPassword`. It handles quoted
+commas, doubled quotes, multiline fields, BOM and CRLF. It reports row numbers,
+missing fields, basic UPN/alias problems and case-insensitive duplicates. All rows
+sharing a duplicate UPN are blocked. It never connects to a tenant or runs PowerShell.
+Exit codes: 0 = locally ready for review, 2 = blocked/empty plan, 1 = malformed input
+or unreadable file. Output contains names/UPNs; save or share it intentionally.
+Passwords and unknown column values are never included in reports.
+
+A successful preflight does not verify domain ownership, existing tenant accounts,
+full Graph property rules, password strength/policy or effective permissions. The
+source CSV is still sensitive. Review the script and run it with `-WhatIf` first;
+this does not simulate Graph-side validation. No automatic rollback is offered.
+
+[Microsoft Create user documentation](https://learn.microsoft.com/en-us/graph/api/user-post-users?view=graph-rest-1.0),
+verified October 1, 2026, lists `User.Create` for delegated and application access.
+The existing generated script requests the broader `User.ReadWrite.All`; the report
+makes this distinction explicit. This increment provides a reusable ES module and
+CLI; browser file upload/preview and integration with script generation are next.
