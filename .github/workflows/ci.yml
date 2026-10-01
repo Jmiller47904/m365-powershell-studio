@@ -17,5 +17,6 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - run: node --test tests/csv-preflight.test.mjs
       - run: npm ci
       - run: npm test

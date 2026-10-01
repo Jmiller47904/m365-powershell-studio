@@ -18,6 +18,7 @@
     "desktop": "electron electron/main.cjs",
     "desktop:dev": "node electron/dev.cjs",
     "desktop:dist": "electron-builder --config electron-builder.yml",
+    "test:preflight": "node --test tests/csv-preflight.test.mjs",
     "test": "npm run build && node --test tests/rendered-html.test.mjs",
     "validate:artifact": "bash scripts/validate-artifact.sh",
     "lint": "bash scripts/sites-env.sh -- eslint . --ignore-pattern dist --ignore-pattern .next",
