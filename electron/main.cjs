@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- Electron entry point is intentionally CommonJS. */
 const { app, BrowserWindow, shell } = require("electron");
 const fs = require("node:fs");
 const path = require("node:path");

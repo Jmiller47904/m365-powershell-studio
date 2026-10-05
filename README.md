@@ -208,7 +208,10 @@ source CSV is still sensitive. Review the script and run it with `-WhatIf` first
 this does not simulate Graph-side validation. No automatic rollback is offered.
 
 [Microsoft Create user documentation](https://learn.microsoft.com/en-us/graph/api/user-post-users?view=graph-rest-1.0),
-verified October 1, 2026, lists `User.Create` for delegated and application access.
-The existing generated script requests the broader `User.ReadWrite.All`; the report
-makes this distinction explicit. This increment provides a reusable ES module and
+reverified October 5, 2026, lists `User.Create` for delegated and application access.
+The generated script now requests that least-privileged scope. It imports the CSV and
+prints planned UPN actions locally by default without opening a Graph connection. An
+analyst must pass `-Execute` before it can connect or write; `-Execute -WhatIf` keeps
+PowerShell's ShouldProcess preview available before an intentional execution.
+This increment provides a reusable ES module and
 CLI; browser file upload/preview and integration with script generation are next.

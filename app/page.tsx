@@ -25,7 +25,8 @@ const initialScript = `#requires -Version 7.2
 .SYNOPSIS
     Creates Microsoft Entra ID users from a CSV file.
 .NOTES
-    Required Graph scope: User.ReadWrite.All
+    Required Graph scope: User.Create
+    Default mode is a local preview. Pass -Execute to allow tenant writes.
 #>
 
 [CmdletBinding(SupportsShouldProcess)]
@@ -34,14 +35,26 @@ param(
     [ValidateScript({ Test-Path $_ })]
     [string] $CsvPath,
 
-    [string] $UsageLocation = "US"
+    [string] $UsageLocation = "US",
+
+    [switch] $Execute
 )
 
 $ErrorActionPreference = "Stop"
+$users = Import-Csv -Path $CsvPath
 
+if (-not $Execute) {
+    foreach ($user in $users) {
+        Write-Output "[PREVIEW] Create user: $($user.UserPrincipalName)"
+    }
+    Write-Warning "Preview only. No Graph connection was opened and no tenant changes were made. Re-run with -Execute -WhatIf before an intentional write."
+    return
+}
+
+$connected = $false
 try {
-    Connect-MgGraph -Scopes "User.ReadWrite.All" -NoWelcome
-    $users = Import-Csv -Path $CsvPath
+    Connect-MgGraph -Scopes "User.Create" -NoWelcome
+    $connected = $true
 
     foreach ($user in $users) {
         $params = @{
@@ -65,7 +78,9 @@ catch {
     Write-Error "User creation failed: $($_.Exception.Message)"
 }
 finally {
-    Disconnect-MgGraph | Out-Null
+    if ($connected) {
+        Disconnect-MgGraph | Out-Null
+    }
 }`;
 
 function highlight(line: string) {
@@ -180,12 +195,12 @@ export default function Home() {
               <label>CSV file path<span>*</span><div className="field-row"><input defaultValue="C:\Users\Jake\users.csv"/><button>▱</button></div></label>
               <label>Usage location<select defaultValue="US"><option>US — United States</option><option>CA — Canada</option><option>GB — United Kingdom</option></select></label>
               <label className="check"><input type="checkbox" defaultChecked/><span><b>Force password change</b><small>Require users to change their password at first sign-in.</small></span></label>
-              <label className="check"><input type="checkbox" defaultChecked/><span><b>Use WhatIf protection</b><small>Preview changes before writing to the tenant.</small></span></label>
+              <label className="check"><input type="checkbox" checked readOnly/><span><b>Require explicit -Execute</b><small>Generated scripts preview locally by default. Use -Execute -WhatIf before an intentional write.</small></span></label>
               <label>Error handling<select><option>Stop and report errors</option><option>Continue and log errors</option></select></label>
               <button className="generate" onClick={()=>setScript(initialScript)}>↻ Generate script</button>
             </div>
             <div className="templates"><div className="template-head"><b>Quick templates</b><input placeholder="Filter…" value={search} onChange={e=>setSearch(e.target.value)}/></div>{filtered.slice(0,3).map(s=><button key={s.title} onClick={()=>loadTemplate(s.title)}><span className="template-icon">PS</span><span><b>{s.title}</b><small>{s.description}</small></span><em>＋</em></button>)}</div>
-          </> : <div className="permissions-panel"><div className="permission-ok">✓</div><h2>Required permissions</h2><p>This script uses delegated Microsoft Graph access.</p><div className="scope"><span>Microsoft Graph</span><b>User.ReadWrite.All</b><small>Admin consent required</small></div><div className="scope"><span>Optional</span><b>Directory.Read.All</b><small>Only needed for directory validation</small></div><h3>Connection command</h3><code>Connect-MgGraph -Scopes<br/> "User.ReadWrite.All"</code><p className="permission-note">Review requested scopes before running scripts against a production tenant.</p></div>}
+          </> : <div className="permissions-panel"><div className="permission-ok">✓</div><h2>Required permissions</h2><p>This script uses delegated Microsoft Graph access.</p><div className="scope"><span>Microsoft Graph</span><b>User.Create</b><small>Least-privileged create-user permission documented by Microsoft</small></div><div className="scope"><span>Execution guard</span><b>-Execute</b><small>Required before the script opens a Graph connection</small></div><h3>Connection command</h3><code>Connect-MgGraph -Scopes<br/> &quot;User.Create&quot;</code><p className="permission-note">Preview first, then use -Execute -WhatIf and review the tenant context before an intentional run.</p></div>}
         </aside>
       </section>
       {toast && <div className="toast">✓ {toast}</div>}
