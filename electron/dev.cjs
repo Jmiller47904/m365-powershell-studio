@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- Electron entry point is intentionally CommonJS. */
 const { spawn } = require("node:child_process");
 const http = require("node:http");
 const { join } = require("node:path");
