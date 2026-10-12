@@ -25,3 +25,10 @@ test('builder presents the immutable execution guard and least privilege scope',
   assert.match(source, /checked readOnly/);
   assert.ok(!source.includes('Connect-MgGraph -Scopes "User.ReadWrite.All"'));
 });
+
+test('unfinished quick templates cannot generate the create-user script', () => {
+  assert.match(source, /disabled={!s\.available}/);
+  assert.match(source, /Planned — no script is generated/);
+  assert.ok(!source.includes('initialScript.replace('));
+  assert.match(source, /◉ Local only/);
+});

@@ -12,8 +12,9 @@ The current experience includes:
 - Microsoft Graph permission guidance and admin-consent notes
 - WhatIf protection, validation, error handling, and disconnect cleanup in
   generated scripts
-- Quick templates, recent scripts, terminal validation feedback, copy, and
-  .ps1 export
+- One reviewed create-user template, recent scripts, terminal validation
+  feedback, copy, and .ps1 export. Other quick-template cards are visibly
+  marked as planned and cannot generate placeholder scripts.
 
 ## Run locally
 
@@ -44,6 +45,10 @@ npm test
 The generated scripts are intentionally designed to be reviewed and exported
 before they are run against a tenant. They do not execute Microsoft 365
 changes from the browser.
+
+The status bar reports `Local only`; it does not imply a tenant connection.
+Only the create-user quick template currently generates code. Planned cards are
+disabled so they cannot silently substitute unrelated create-user commands.
 
 ## Deployment strategy
 

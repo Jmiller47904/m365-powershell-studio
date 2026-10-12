@@ -13,11 +13,11 @@ const services = [
 ];
 
 const snippets = [
-  { title: "Create a user", service: "Entra ID", description: "Create a cloud user with a generated password." },
-  { title: "Add group members", service: "Entra ID", description: "Add users from CSV to a security group." },
-  { title: "Assign licenses", service: "Microsoft Graph", description: "Apply an M365 license by SKU." },
-  { title: "Mailbox permissions", service: "Exchange Online", description: "Grant Full Access and Send As." },
-  { title: "Create a Team", service: "Microsoft Teams", description: "Create a team and add owners." },
+  { title: "Create a user", service: "Entra ID", description: "Create a cloud user with a generated password.", available: true },
+  { title: "Add group members", service: "Entra ID", description: "Add users from CSV to a security group.", available: false },
+  { title: "Assign licenses", service: "Microsoft Graph", description: "Apply an M365 license by SKU.", available: false },
+  { title: "Mailbox permissions", service: "Exchange Online", description: "Grant Full Access and Send As.", available: false },
+  { title: "Create a Team", service: "Microsoft Teams", description: "Create a team and add owners.", available: false },
 ];
 
 const initialScript = `#requires -Version 7.2
@@ -148,10 +148,14 @@ export default function Home() {
       setTerminalMessage("✓ Validation complete. Use Export to run this script in PowerShell 7.");
     }, 900);
   }
-  function loadTemplate(title: string) {
-    setFileName(title.replaceAll(" ","")+".ps1");
-    setScript(initialScript.replace("Creates Microsoft Entra ID users from a CSV file.", `${title} — generated M365 automation script.`));
-    notify(`${title} template loaded`);
+  function loadTemplate(template: (typeof snippets)[number]) {
+    if (!template.available) {
+      notify(`${template.title} is planned and does not generate a script yet`);
+      return;
+    }
+    setFileName("New-EntraUser.ps1");
+    setScript(initialScript);
+    notify(`${template.title} template loaded`);
   }
 
   return (
@@ -186,7 +190,7 @@ export default function Home() {
             <textarea className="code-input" value={script} onChange={e=>setScript(e.target.value)} spellCheck={false} aria-label="PowerShell script editor" />
           </div>
           {terminalOpen && <div className="terminal"><div className="terminal-head"><span className="active">TERMINAL</span><button onClick={()=>notify("Output panel selected")}>OUTPUT</button><button onClick={()=>notify("No problems detected")}>PROBLEMS <b>0</b></button><div/><button onClick={()=>setTerminalOpen(false)}>×</button></div><div className="terminal-body"><p><span className="term-path">PS C:\M365Studio&gt;</span> <span className="term-command">Invoke-ScriptAnalyzer .\{fileName}</span></p><p className="success">{terminalMessage}</p><p><span className="term-path">PS C:\M365Studio&gt;</span> <span className="cursor" /></p></div></div>}
-          <footer className="statusbar"><span>⑂ main*</span><span>↻</span><span>ⓧ 0&nbsp;&nbsp;△ 0</span><div/><span>Ln 1, Col 1</span><span>Spaces: 4</span><span>UTF-8</span><span>CRLF</span><span>{"{}"} PowerShell</span><span>◉ Connected</span></footer>
+          <footer className="statusbar"><span>⑂ main*</span><span>↻</span><span>ⓧ 0&nbsp;&nbsp;△ 0</span><div/><span>Ln 1, Col 1</span><span>Spaces: 4</span><span>UTF-8</span><span>CRLF</span><span>{"{}"} PowerShell</span><span>◉ Local only</span></footer>
         </section>
         <aside className="builder-pane">
           <div className="builder-tabs"><button className={activePanel==="builder"?"active":""} onClick={()=>setActivePanel("builder")}>SCRIPT BUILDER</button><button className={activePanel==="permissions"?"active":""} onClick={()=>setActivePanel("permissions")}>PERMISSIONS</button></div>
@@ -199,7 +203,7 @@ export default function Home() {
               <label>Error handling<select><option>Stop and report errors</option><option>Continue and log errors</option></select></label>
               <button className="generate" onClick={()=>setScript(initialScript)}>↻ Generate script</button>
             </div>
-            <div className="templates"><div className="template-head"><b>Quick templates</b><input placeholder="Filter…" value={search} onChange={e=>setSearch(e.target.value)}/></div>{filtered.slice(0,3).map(s=><button key={s.title} onClick={()=>loadTemplate(s.title)}><span className="template-icon">PS</span><span><b>{s.title}</b><small>{s.description}</small></span><em>＋</em></button>)}</div>
+            <div className="templates"><div className="template-head"><b>Quick templates</b><input placeholder="Filter…" value={search} onChange={e=>setSearch(e.target.value)}/></div>{filtered.slice(0,3).map(s=><button key={s.title} onClick={()=>loadTemplate(s)} disabled={!s.available} title={s.available?"Load reviewed template":"Planned — no script is generated"}><span className="template-icon">PS</span><span><b>{s.title}</b><small>{s.description}</small></span><em>{s.available?"＋":"PLANNED"}</em></button>)}</div>
           </> : <div className="permissions-panel"><div className="permission-ok">✓</div><h2>Required permissions</h2><p>This script uses delegated Microsoft Graph access.</p><div className="scope"><span>Microsoft Graph</span><b>User.Create</b><small>Least-privileged create-user permission documented by Microsoft</small></div><div className="scope"><span>Execution guard</span><b>-Execute</b><small>Required before the script opens a Graph connection</small></div><h3>Connection command</h3><code>Connect-MgGraph -Scopes<br/> &quot;User.Create&quot;</code><p className="permission-note">Preview first, then use -Execute -WhatIf and review the tenant context before an intentional run.</p></div>}
         </aside>
       </section>
