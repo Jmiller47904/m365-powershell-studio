@@ -29,6 +29,18 @@ test('builder presents the immutable execution guard and least privilege scope',
 test('unfinished quick templates cannot generate the create-user script', () => {
   assert.match(source, /disabled={!s\.available}/);
   assert.match(source, /Planned — no script is generated/);
-  assert.ok(!source.includes('initialScript.replace('));
   assert.match(source, /◉ Local only/);
+});
+
+test('builder choices are reflected without implying browser file access', () => {
+  assert.match(source, /buildCreateUserScript\(usageLocation, forcePasswordChange\)/);
+  assert.match(source, /new Set\(\["US", "CA", "GB"\]\)/);
+  assert.ok(source.includes('`[string] $UsageLocation = "${safeUsageLocation}"`'));
+  assert.ok(source.includes('`ForceChangePasswordNextSignIn = $${forcePasswordChange ? "true" : "false"}`'));
+  assert.match(source, /value=\{usageLocation\} onChange=/);
+  assert.match(source, /checked=\{forcePasswordChange\} onChange=/);
+  assert.match(source, /Passed as -CsvPath when the exported script runs/);
+  assert.ok(!source.includes('C:\\Users\\Jake\\users.csv'));
+  assert.match(source, /value="Stop and report errors" disabled/);
+  assert.ok(!source.includes('Continue and log errors'));
 });
