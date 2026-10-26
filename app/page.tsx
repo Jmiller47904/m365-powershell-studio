@@ -83,6 +83,17 @@ finally {
     }
 }`;
 
+function buildCreateUserScript(usageLocation: string, forcePasswordChange: boolean) {
+  const reviewedLocations = new Set(["US", "CA", "GB"]);
+  const safeUsageLocation = reviewedLocations.has(usageLocation) ? usageLocation : "US";
+  return initialScript
+    .replace('[string] $UsageLocation = "US"', `[string] $UsageLocation = "${safeUsageLocation}"`)
+    .replace(
+      "ForceChangePasswordNextSignIn = $true",
+      `ForceChangePasswordNextSignIn = $${forcePasswordChange ? "true" : "false"}`,
+    );
+}
+
 function highlight(line: string) {
   const escaped = line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   if (escaped.trim().startsWith("#")) return <span className="tok-comment" dangerouslySetInnerHTML={{ __html: escaped }} />;
@@ -108,6 +119,8 @@ export default function Home() {
   const [running, setRunning] = useState(false);
   const [terminalMessage, setTerminalMessage] = useState("✓ No issues found. Script follows PowerShell best practices.");
   const [activity, setActivity] = useState("Explorer");
+  const [usageLocation, setUsageLocation] = useState("US");
+  const [forcePasswordChange, setForcePasswordChange] = useState(true);
   const lines = useMemo(() => script.split("\n"), [script]);
   const filtered = snippets.filter(s => (activeService === "Entra ID" || s.service === activeService) && s.title.toLowerCase().includes(search.toLowerCase()));
 
@@ -154,7 +167,7 @@ export default function Home() {
       return;
     }
     setFileName("New-EntraUser.ps1");
-    setScript(initialScript);
+    setScript(buildCreateUserScript(usageLocation, forcePasswordChange));
     notify(`${template.title} template loaded`);
   }
 
@@ -196,12 +209,12 @@ export default function Home() {
           <div className="builder-tabs"><button className={activePanel==="builder"?"active":""} onClick={()=>setActivePanel("builder")}>SCRIPT BUILDER</button><button className={activePanel==="permissions"?"active":""} onClick={()=>setActivePanel("permissions")}>PERMISSIONS</button></div>
           {activePanel === "builder" ? <>
             <div className="builder-content"><div className="builder-heading"><span className="big-icon">◈</span><div><small>ENTRA ID</small><h2>Create users from CSV</h2></div></div><p className="muted">Build a production-ready script to create cloud users from a CSV source.</p>
-              <label>CSV file path<span>*</span><div className="field-row"><input defaultValue="C:\Users\Jake\users.csv"/><button>▱</button></div></label>
-              <label>Usage location<select defaultValue="US"><option>US — United States</option><option>CA — Canada</option><option>GB — United Kingdom</option></select></label>
-              <label className="check"><input type="checkbox" defaultChecked/><span><b>Force password change</b><small>Require users to change their password at first sign-in.</small></span></label>
+              <label>CSV input<span>*</span><div className="field-row"><input value="Passed as -CsvPath when the exported script runs" readOnly aria-label="CSV input behavior"/></div></label>
+              <label>Usage location<select value={usageLocation} onChange={e=>setUsageLocation(e.target.value)}><option value="US">US — United States</option><option value="CA">CA — Canada</option><option value="GB">GB — United Kingdom</option></select></label>
+              <label className="check"><input type="checkbox" checked={forcePasswordChange} onChange={e=>setForcePasswordChange(e.target.checked)}/><span><b>Force password change</b><small>Require users to change their password at first sign-in.</small></span></label>
               <label className="check"><input type="checkbox" checked readOnly/><span><b>Require explicit -Execute</b><small>Generated scripts preview locally by default. Use -Execute -WhatIf before an intentional write.</small></span></label>
-              <label>Error handling<select><option>Stop and report errors</option><option>Continue and log errors</option></select></label>
-              <button className="generate" onClick={()=>setScript(initialScript)}>↻ Generate script</button>
+              <label>Error handling<select value="Stop and report errors" disabled aria-label="Error handling"><option>Stop and report errors</option></select><small className="muted">This reviewed template stops on errors; alternate policies are not yet generated.</small></label>
+              <button className="generate" onClick={()=>setScript(buildCreateUserScript(usageLocation, forcePasswordChange))}>↻ Generate script</button>
             </div>
             <div className="templates"><div className="template-head"><b>Quick templates</b><input placeholder="Filter…" value={search} onChange={e=>setSearch(e.target.value)}/></div>{filtered.slice(0,3).map(s=><button key={s.title} onClick={()=>loadTemplate(s)} disabled={!s.available} title={s.available?"Load reviewed template":"Planned — no script is generated"}><span className="template-icon">PS</span><span><b>{s.title}</b><small>{s.description}</small></span><em>{s.available?"＋":"PLANNED"}</em></button>)}</div>
           </> : <div className="permissions-panel"><div className="permission-ok">✓</div><h2>Required permissions</h2><p>This script uses delegated Microsoft Graph access.</p><div className="scope"><span>Microsoft Graph</span><b>User.Create</b><small>Least-privileged create-user permission documented by Microsoft</small></div><div className="scope"><span>Execution guard</span><b>-Execute</b><small>Required before the script opens a Graph connection</small></div><h3>Connection command</h3><code>Connect-MgGraph -Scopes<br/> &quot;User.Create&quot;</code><p className="permission-note">Preview first, then use -Execute -WhatIf and review the tenant context before an intentional run.</p></div>}

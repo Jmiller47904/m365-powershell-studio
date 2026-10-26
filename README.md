@@ -8,7 +8,9 @@ The current experience includes:
 - Entra ID, Exchange Online, Teams, SharePoint Online, Microsoft Graph, Intune,
   and Security & Compliance service libraries
 - Editable PowerShell with lightweight syntax highlighting
-- Guided script-builder controls for CSV-driven Entra ID user creation
+- Guided script-builder controls for CSV-driven Entra ID user creation; usage
+  location and first-sign-in password-change choices are written into the
+  reviewed script when **Generate script** is selected
 - Microsoft Graph permission guidance and admin-consent notes
 - WhatIf protection, validation, error handling, and disconnect cleanup in
   generated scripts
@@ -45,6 +47,11 @@ npm test
 The generated scripts are intentionally designed to be reviewed and exported
 before they are run against a tenant. They do not execute Microsoft 365
 changes from the browser.
+
+The builder does not read a local CSV file. The exported script requires the
+operator to pass `-CsvPath` at runtime, keeping file selection in PowerShell.
+The reviewed template currently fixes `$ErrorActionPreference` to `Stop`; the
+interface does not present an alternate error policy until one is implemented.
 
 The status bar reports `Local only`; it does not imply a tenant connection.
 Only the create-user quick template currently generates code. Planned cards are
