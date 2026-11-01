@@ -48,8 +48,10 @@ The generated scripts are intentionally designed to be reviewed and exported
 before they are run against a tenant. They do not execute Microsoft 365
 changes from the browser.
 
-The builder does not read a local CSV file. The exported script requires the
-operator to pass `-CsvPath` at runtime, keeping file selection in PowerShell.
+The builder can read a selected CSV locally to show row-level preflight results.
+It never uploads the file, stores it, embeds its path, or includes temporary
+passwords in the report. The exported script still requires the operator to pass
+`-CsvPath` at runtime, keeping the actual execution input in PowerShell.
 The reviewed template currently fixes `$ErrorActionPreference` to `Stop`; the
 interface does not present an alternate error policy until one is implemented.
 
@@ -220,10 +222,12 @@ source CSV is still sensitive. Review the script and run it with `-WhatIf` first
 this does not simulate Graph-side validation. No automatic rollback is offered.
 
 [Microsoft Create user documentation](https://learn.microsoft.com/en-us/graph/api/user-post-users?view=graph-rest-1.0),
-reverified October 5, 2026, lists `User.Create` for delegated and application access.
+reverified November 1, 2026, lists `User.Create` for delegated and application access.
 The generated script now requests that least-privileged scope. It imports the CSV and
 prints planned UPN actions locally by default without opening a Graph connection. An
 analyst must pass `-Execute` before it can connect or write; `-Execute -WhatIf` keeps
 PowerShell's ShouldProcess preview available before an intentional execution.
-This increment provides a reusable ES module and
-CLI; browser file upload/preview and integration with script generation are next.
+The reusable ES module and CLI also power a browser/desktop preview. The UI shows
+up to 100 row details while its totals cover the entire file. Passing preflight
+means only that the local CSV contract is ready for script review; it is not a
+tenant validation and does not enable execution.
