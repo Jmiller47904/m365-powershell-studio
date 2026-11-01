@@ -32,15 +32,20 @@ test('unfinished quick templates cannot generate the create-user script', () => 
   assert.match(source, /◉ Local only/);
 });
 
-test('builder choices are reflected without implying browser file access', () => {
+test('builder choices and local CSV preflight preserve runtime file selection', () => {
   assert.match(source, /buildCreateUserScript\(usageLocation, forcePasswordChange\)/);
   assert.match(source, /new Set\(\["US", "CA", "GB"\]\)/);
   assert.ok(source.includes('`[string] $UsageLocation = "${safeUsageLocation}"`'));
   assert.ok(source.includes('`ForceChangePasswordNextSignIn = $${forcePasswordChange ? "true" : "false"}`'));
   assert.match(source, /value=\{usageLocation\} onChange=/);
   assert.match(source, /checked=\{forcePasswordChange\} onChange=/);
-  assert.match(source, /Passed as -CsvPath when the exported script runs/);
+  assert.match(source, /type="file" accept="\.csv,text\/csv"/);
+  assert.match(source, /planUserCreation\(await file\.text\(\)\)/);
+  assert.match(source, /temporary passwords are never uploaded or embedded/);
+  assert.match(source, /does not check the tenant, domains, existing accounts/);
+  assert.match(source, /Showing the first 100 rows/);
   assert.ok(!source.includes('C:\\Users\\Jake\\users.csv'));
+  assert.ok(!source.includes('fetch('));
   assert.match(source, /value="Stop and report errors" disabled/);
   assert.ok(!source.includes('Continue and log errors'));
 });

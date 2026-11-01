@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { planUserCreation, type CsvPreflightPlan } from "@/lib/csv-preflight.mjs";
 
 const services = [
   { name: "Entra ID", icon: "◈", count: 18, color: "#7c6df2" },
@@ -121,6 +122,9 @@ export default function Home() {
   const [activity, setActivity] = useState("Explorer");
   const [usageLocation, setUsageLocation] = useState("US");
   const [forcePasswordChange, setForcePasswordChange] = useState(true);
+  const [csvFileName, setCsvFileName] = useState("");
+  const [csvPlan, setCsvPlan] = useState<CsvPreflightPlan | null>(null);
+  const [csvError, setCsvError] = useState("");
   const lines = useMemo(() => script.split("\n"), [script]);
   const filtered = snippets.filter(s => (activeService === "Entra ID" || s.service === activeService) && s.title.toLowerCase().includes(search.toLowerCase()));
 
@@ -170,6 +174,17 @@ export default function Home() {
     setScript(buildCreateUserScript(usageLocation, forcePasswordChange));
     notify(`${template.title} template loaded`);
   }
+  async function inspectCsv(file: File | undefined) {
+    setCsvPlan(null);
+    setCsvError("");
+    setCsvFileName(file?.name ?? "");
+    if (!file) return;
+    try {
+      setCsvPlan(planUserCreation(await file.text()));
+    } catch (error) {
+      setCsvError(error instanceof Error ? error.message : "CSV preflight failed.");
+    }
+  }
 
   return (
     <main className="app-shell">
@@ -209,7 +224,17 @@ export default function Home() {
           <div className="builder-tabs"><button className={activePanel==="builder"?"active":""} onClick={()=>setActivePanel("builder")}>SCRIPT BUILDER</button><button className={activePanel==="permissions"?"active":""} onClick={()=>setActivePanel("permissions")}>PERMISSIONS</button></div>
           {activePanel === "builder" ? <>
             <div className="builder-content"><div className="builder-heading"><span className="big-icon">◈</span><div><small>ENTRA ID</small><h2>Create users from CSV</h2></div></div><p className="muted">Build a production-ready script to create cloud users from a CSV source.</p>
-              <label>CSV input<span>*</span><div className="field-row"><input value="Passed as -CsvPath when the exported script runs" readOnly aria-label="CSV input behavior"/></div></label>
+              <label>CSV input<span>*</span><input type="file" accept=".csv,text/csv" onChange={event=>inspectCsv(event.target.files?.[0])} aria-label="Choose CSV for local preflight"/><small className="muted">Read locally for preview only. The file and temporary passwords are never uploaded or embedded in the script.</small></label>
+              {(csvPlan||csvError) && <section className="csv-plan" aria-live="polite">
+                <div className="csv-plan-head"><b>{csvFileName||"CSV preflight"}</b><span>{csvPlan?.mode||"CHECK INPUT"}</span></div>
+                {csvError ? <p className="csv-error">{csvError}</p> : csvPlan && <>
+                  <div className="csv-summary"><span>{csvPlan.summary.total} rows</span><span className="csv-ready">{csvPlan.summary.readyForReview} ready</span><span className={csvPlan.summary.blocked?"csv-blocked":"csv-ready"}>{csvPlan.summary.blocked} blocked</span></div>
+                  <p className="csv-scope">Graph {csvPlan.permissions.apiVersion} · {csvPlan.permissions.generatedScriptScope} · <a href={csvPlan.permissions.source} target="_blank" rel="noreferrer">Microsoft documentation</a></p>
+                  <div className="csv-rows">{csvPlan.rows.slice(0,100).map(row=><div className={row.issues.length?"csv-row blocked":"csv-row"} key={`${row.line}-${row.userPrincipalName}`}><span>Line {row.line}</span><b>{row.userPrincipalName||"Missing UPN"}</b><small>{row.issues.length?row.issues.join(" "):"Ready for script review"}</small></div>)}</div>
+                  {csvPlan.rows.length>100&&<p className="csv-scope">Showing the first 100 rows. The summary covers all rows.</p>}
+                  <p className="csv-warning">Local syntax preview only. It does not check the tenant, domains, existing accounts, password policy, or effective permissions. Exported scripts still require -Execute; use -Execute -WhatIf before an intentional write.</p>
+                </>}
+              </section>}
               <label>Usage location<select value={usageLocation} onChange={e=>setUsageLocation(e.target.value)}><option value="US">US — United States</option><option value="CA">CA — Canada</option><option value="GB">GB — United Kingdom</option></select></label>
               <label className="check"><input type="checkbox" checked={forcePasswordChange} onChange={e=>setForcePasswordChange(e.target.checked)}/><span><b>Force password change</b><small>Require users to change their password at first sign-in.</small></span></label>
               <label className="check"><input type="checkbox" checked readOnly/><span><b>Require explicit -Execute</b><small>Generated scripts preview locally by default. Use -Execute -WhatIf before an intentional write.</small></span></label>
