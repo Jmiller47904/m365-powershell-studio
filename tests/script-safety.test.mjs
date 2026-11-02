@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 
 const source = fs.readFileSync(new URL('../app/page.tsx', import.meta.url), 'utf8');
+const packageJson = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 
 test('generated create-user script is local-preview-first', () => {
   const guard = source.indexOf('if (-not $Execute)');
@@ -48,4 +49,9 @@ test('builder choices and local CSV preflight preserve runtime file selection', 
   assert.ok(!source.includes('fetch('));
   assert.match(source, /value="Stop and report errors" disabled/);
   assert.ok(!source.includes('Continue and log errors'));
+});
+
+test('desktop packaging tools are reproducibly pinned', () => {
+  assert.match(packageJson.devDependencies.electron, /^\d+\.\d+\.\d+$/);
+  assert.match(packageJson.devDependencies['electron-builder'], /^\d+\.\d+\.\d+$/);
 });
