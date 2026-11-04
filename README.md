@@ -89,6 +89,10 @@ To build distributable installers:
 
     npm run desktop:dist
 
+Electron and electron-builder are pinned to exact versions in `package.json` and
+`package-lock.json`, so desktop packaging uses the reviewed toolchain during clean
+installs instead of resolving a newer release implicitly.
+
 The shell accepts a URL through M365_STUDIO_URL or a --url command-line
 argument. This keeps the desktop app independent of any single hosting vendor.
 
