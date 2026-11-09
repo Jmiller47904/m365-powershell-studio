@@ -55,3 +55,10 @@ test('desktop packaging tools are reproducibly pinned', () => {
   assert.match(packageJson.devDependencies.electron, /^\d+\.\d+\.\d+$/);
   assert.match(packageJson.devDependencies['electron-builder'], /^\d+\.\d+\.\d+$/);
 });
+
+test('browser review does not impersonate PSScriptAnalyzer or execute PowerShell', () => {
+  assert.doesNotMatch(source, /Invoke-ScriptAnalyzer/);
+  assert.doesNotMatch(source, /No issues found\. Script follows PowerShell best practices/);
+  assert.match(source, /Static guard review only — PowerShell was not executed/);
+  assert.match(source, /reviewPowerShellScript\(script\)/);
+});

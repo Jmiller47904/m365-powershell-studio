@@ -18,6 +18,12 @@ The current experience includes:
   feedback, copy, and .ps1 export. Other quick-template cards are visibly
   marked as planned and cannot generate placeholder scripts.
 
+The browser's local review checks the generated execution guard, ShouldProcess
+placement, Graph connection cleanup, and supported Graph mutation commands. It
+does not run PowerShell or bundle PSScriptAnalyzer, and it does not claim full
+PowerShell syntax or tenant validation. Exported scripts still require review in
+PowerShell 7 and should be checked with PSScriptAnalyzer where available.
+
 ## Run locally
 
 Requirements: Node.js 22.13.0 or newer, Linux utilities flock, curl, and GNU
