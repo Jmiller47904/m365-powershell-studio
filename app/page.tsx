@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { planUserCreation, type CsvPreflightPlan } from "@/lib/csv-preflight.mjs";
+import { reviewPowerShellScript, type ScriptReviewResult } from "@/lib/script-review.mjs";
 
 const services = [
   { name: "Entra ID", icon: "◈", count: 18, color: "#7c6df2" },
@@ -117,8 +118,7 @@ export default function Home() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [modal, setModal] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [running, setRunning] = useState(false);
-  const [terminalMessage, setTerminalMessage] = useState("✓ No issues found. Script follows PowerShell best practices.");
+  const [scriptReview, setScriptReview] = useState<ScriptReviewResult | null>(null);
   const [activity, setActivity] = useState("Explorer");
   const [usageLocation, setUsageLocation] = useState("US");
   const [forcePasswordChange, setForcePasswordChange] = useState(true);
@@ -156,14 +156,9 @@ export default function Home() {
     setOpenMenu(null);
     notify("New script created");
   }
-  function runScript() {
-    setRunning(true);
+  function reviewScript() {
     setTerminalOpen(true);
-    setTerminalMessage("Running safety validation…");
-    setTimeout(() => {
-      setRunning(false);
-      setTerminalMessage("✓ Validation complete. Use Export to run this script in PowerShell 7.");
-    }, 900);
+    setScriptReview(reviewPowerShellScript(script));
   }
   function loadTemplate(template: (typeof snippets)[number]) {
     if (!template.available) {
@@ -212,12 +207,12 @@ export default function Home() {
         </aside>
         <section className="main-column">
           <div className="tabs"><div className="tab active"><span className="ps-mini">PS</span><input value={fileName} onChange={e=>setFileName(e.target.value)} aria-label="File name"/><span className="dirty">●</span><button onClick={newScript}>×</button></div><button className="new-tab" onClick={newScript}>＋</button></div>
-          <div className="editor-toolbar"><span>⌘ {activeService}</span><span className="crumb">›</span><span>Create users from CSV</span><div className="toolbar-spacer"/><button onClick={()=>setTerminalOpen(!terminalOpen)}>▱ Terminal</button><button onClick={copy}>{copied ? "✓ Copied" : "▣ Copy"}</button><button className="run-btn" onClick={runScript}>{running?"◌ Checking…":"▷ Run"}</button><button onClick={download}>Export</button></div>
+          <div className="editor-toolbar"><span>⌘ {activeService}</span><span className="crumb">›</span><span>Create users from CSV</span><div className="toolbar-spacer"/><button onClick={()=>setTerminalOpen(!terminalOpen)}>▱ Terminal</button><button onClick={copy}>{copied ? "✓ Copied" : "▣ Copy"}</button><button className="run-btn" onClick={reviewScript}>✓ Review locally</button><button onClick={download}>Export</button></div>
           <div className="editor-wrap">
             <div className="code-view" aria-hidden="true">{lines.map((line,i)=><div className="code-line" key={i}><span className="line-no">{i+1}</span><code>{highlight(line)}</code></div>)}</div>
             <textarea className="code-input" value={script} onChange={e=>setScript(e.target.value)} spellCheck={false} aria-label="PowerShell script editor" />
           </div>
-          {terminalOpen && <div className="terminal"><div className="terminal-head"><span className="active">TERMINAL</span><button onClick={()=>notify("Output panel selected")}>OUTPUT</button><button onClick={()=>notify("No problems detected")}>PROBLEMS <b>0</b></button><div/><button onClick={()=>setTerminalOpen(false)}>×</button></div><div className="terminal-body"><p><span className="term-path">PS C:\M365Studio&gt;</span> <span className="term-command">Invoke-ScriptAnalyzer .\{fileName}</span></p><p className="success">{terminalMessage}</p><p><span className="term-path">PS C:\M365Studio&gt;</span> <span className="cursor" /></p></div></div>}
+          {terminalOpen && <div className="terminal"><div className="terminal-head"><span className="active">LOCAL REVIEW</span><button onClick={()=>notify("Review output selected")}>OUTPUT</button><button onClick={()=>notify(scriptReview?.issues.length ? "Review has blocking findings" : "No blocking local-review findings")} >PROBLEMS <b>{scriptReview?.issues.length ?? "—"}</b></button><div/><button onClick={()=>setTerminalOpen(false)}>×</button></div><div className="terminal-body"><p><span className="term-path">M365Studio&gt;</span> <span className="term-command">Static guard review only — PowerShell was not executed</span></p>{scriptReview ? <><p className={scriptReview.issues.length ? "" : "success"}>{scriptReview.mode}</p>{scriptReview.issues.map(issue=><p key={issue}>✗ {issue}</p>)}{scriptReview.checks.map(check=><p className="success" key={check}>✓ {check}</p>)}</> : <p>Review has not run. This browser does not include PSScriptAnalyzer or execute the script.</p>}<p><span className="term-path">M365Studio&gt;</span> <span className="cursor" /></p></div></div>}
           <footer className="statusbar"><span>⑂ main*</span><span>↻</span><span>ⓧ 0&nbsp;&nbsp;△ 0</span><div/><span>Ln 1, Col 1</span><span>Spaces: 4</span><span>UTF-8</span><span>CRLF</span><span>{"{}"} PowerShell</span><span>◉ Local only</span></footer>
         </section>
         <aside className="builder-pane">
@@ -246,7 +241,7 @@ export default function Home() {
         </aside>
       </section>
       {toast && <div className="toast">✓ {toast}</div>}
-      {modal && <div className="modal-backdrop" onClick={()=>setModal(null)}><section className="modal-card" onClick={e=>e.stopPropagation()}><button className="modal-close" onClick={()=>setModal(null)}>×</button><span className="modal-icon">{modal==="Settings"?"⚙":"⌘"}</span><h2>{modal}</h2>{modal==="Command search"?<><input autoFocus placeholder="Type a command or template…"/><div className="command-results"><button onClick={newScript}>New PowerShell script <kbd>Ctrl N</kbd></button><button onClick={runScript}>Validate current script <kbd>F5</kbd></button><button onClick={download}>Export current script</button></div></>:<><p>Configure your M365 PowerShell Studio workspace.</p><label className="modal-toggle"><input type="checkbox" defaultChecked/> PowerShell 7 compatibility</label><label className="modal-toggle"><input type="checkbox" defaultChecked/> Add WhatIf protection by default</label><button className="modal-primary" onClick={()=>{setModal(null);notify(`${modal} updated`)}}>Save changes</button></>}</section></div>}
+      {modal && <div className="modal-backdrop" onClick={()=>setModal(null)}><section className="modal-card" onClick={e=>e.stopPropagation()}><button className="modal-close" onClick={()=>setModal(null)}>×</button><span className="modal-icon">{modal==="Settings"?"⚙":"⌘"}</span><h2>{modal}</h2>{modal==="Command search"?<><input autoFocus placeholder="Type a command or template…"/><div className="command-results"><button onClick={newScript}>New PowerShell script <kbd>Ctrl N</kbd></button><button onClick={reviewScript}>Review local safety guards <kbd>F5</kbd></button><button onClick={download}>Export current script</button></div></>:<><p>Configure your M365 PowerShell Studio workspace.</p><label className="modal-toggle"><input type="checkbox" defaultChecked/> PowerShell 7 compatibility</label><label className="modal-toggle"><input type="checkbox" defaultChecked/> Add WhatIf protection by default</label><button className="modal-primary" onClick={()=>{setModal(null);notify(`${modal} updated`)}}>Save changes</button></>}</section></div>}
     </main>
   );
 }
