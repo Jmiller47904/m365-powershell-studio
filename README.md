@@ -19,7 +19,9 @@ The current experience includes:
   marked as planned and cannot generate placeholder scripts.
 
 The browser's local review checks the generated execution guard, ShouldProcess
-placement, Graph connection cleanup, and supported Graph mutation commands. It
+placement, Graph connection cleanup, and supported Graph mutation commands. Matching
+is case-insensitive, consistent with [PowerShell command semantics](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_case-sensitivity)
+(verified November 16, 2026). It
 does not run PowerShell or bundle PSScriptAnalyzer, and it does not claim full
 PowerShell syntax or tenant validation. Exported scripts still require review in
 PowerShell 7 and should be checked with PSScriptAnalyzer where available.
