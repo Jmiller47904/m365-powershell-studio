@@ -31,3 +31,13 @@ test("review blocks missing Graph disconnect cleanup", () => {
   assert.equal(result.mode, "BLOCKED");
   assert.match(result.issues.join(" "), /Disconnect-MgGraph/);
 });
+
+for (const transform of [s => s.toLowerCase(), s => s.toUpperCase()]) {
+  test(`review respects PowerShell casing: ${transform("mixed")}`, () => {
+    assert.equal(reviewPowerShellScript(transform(initialScript)).mode, "READY FOR EXPORT REVIEW");
+    const unsafe = reviewPowerShellScript(transform('Connect-MgGraph\nNew-MgUser -DisplayName "Unsafe"'));
+    assert.equal(unsafe.mode, "BLOCKED");
+    assert.match(unsafe.issues.join(" "), /explicit -Execute/);
+    assert.match(unsafe.issues.join(" "), /Disconnect-MgGraph/);
+  });
+}
